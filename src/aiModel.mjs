@@ -1,6 +1,3 @@
-// src/aiModel.js
-import { combineData } from './dataService.mjs';
-
 export function calculateBMR(user) {
   if (user.gender === 'male') {
     return 88.362 + (13.397 * user.weight) + (4.799 * user.height) - (5.677 * user.age);
@@ -40,18 +37,4 @@ export function createNutritionPlan(user, tdee) {
     fat: fat,
     carbs: carbs
   };
-}
-
-export async function generateNutritionPlans() {
-  const combinedData = await combineData();
-  let nutritionPlans = combinedData.map(user => {
-    let bmr = calculateBMR(user);
-    let tdee = calculateTDEE(user, bmr);
-    return {
-      user: user.name,
-      plan: createNutritionPlan(user, tdee)
-    };
-  });
-
-  return nutritionPlans;
 }

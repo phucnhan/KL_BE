@@ -31,29 +31,32 @@ app.post('/api/user-data', async (req, res) => {
   }
 });
 
-app.get('/api/nutrition-plans', async (req, res) => {
+app.get('/api/nutrition-plan/:uid', async (req, res) => {
   try {
-    const usersSnapshot = await db.collection('usersdata').get();
-    const plans = [];
+    const uid = req.params.uid;
+    const userRef = db.collection('usersdata').doc(uid);
+    const userDoc = await userRef.get();
 
-    usersSnapshot.forEach(doc => {
-      const userData = doc.data();
-      const bmr = calculateBMR(userData);
-      const tdee = calculateTDEE(userData, bmr);
-      const nutritionPlan = createNutritionPlan(userData, tdee);
+    if (!userDoc.exists) {
+      res.status(404).send('User not found');
+      return;
+    }
 
-      plans.push({
-        user: userData.name, // Giả sử bạn có trường 'name' trong dữ liệu người dùng
-        plan: nutritionPlan
-      });
+    const userData = userDoc.data();
+    const bmr = calculateBMR(userData);
+    const tdee = calculateTDEE(userData, bmr);
+    const nutritionPlan = createNutritionPlan(userData, tdee);
+
+    res.json({
+      user: userData.name, // Giả sử bạn có trường 'name' trong dữ liệu người dùng
+      plan: nutritionPlan
     });
-
-    res.json(plans);
   } catch (error) {
-    console.error('Error fetching nutrition plans:', error);
-    res.status(500).send('Error fetching nutrition plans');
+    console.error('Error fetching nutrition plan:', error);
+    res.status(500).send('Error fetching nutrition plan');
   }
 });
+
 
 
 app.listen(port, () => {

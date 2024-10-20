@@ -10,6 +10,7 @@ app.use(express.json());
 app.post('/api/user-data', async (req, res) => {
   try {
     const userData = req.body;
+    console.log('Received user data:', userData); // Kiểm tra dữ liệu nhận được
     const userRef = db.collection('usersdata').doc(userData.uid);
     await userRef.set(userData);
     res.status(200).send('User data saved successfully');
@@ -18,6 +19,8 @@ app.post('/api/user-data', async (req, res) => {
     res.status(500).send('Error saving user data');
   }
 });
+
+
 
 app.get('/api/nutrition-plan/:uid', async (req, res) => {
   try {

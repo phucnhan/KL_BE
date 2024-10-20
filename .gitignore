@@ -1,10 +1,4 @@
 node_modules
 # .gitignore
+src/serviceAccountKey.json
 .env
-./src/serviceAccountKey.json
-src/serviceAccountKey.json
-src/serviceAccountKey.json
-src/serviceAccountKey.json
-*.json
-src/serviceAccountKey.json
-src/serviceAccountKey.json

@@ -1,13 +1,16 @@
 import admin from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
+import dotenv from 'dotenv';
 
-const serviceAccountPath = path.resolve('src', 'serviceAccountKey.json');
+dotenv.config();
+
+const serviceAccountPath = path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://dbkl-d5a0b.firebaseio.com' // Thay thế bằng URL cơ sở dữ liệu của bạn
+  databaseURL: 'https://fir-c8ee2.firebaseio.com' // Thay thế bằng URL cơ sở dữ liệu của bạn
 });
 
 const db = admin.firestore();

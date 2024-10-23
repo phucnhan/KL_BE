@@ -1,4 +1,3 @@
-// src/firebase.js
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, setDoc, updateDoc, collection, getDocs, getDoc } from "firebase/firestore";
@@ -18,4 +17,3 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 export { db, auth, collection, getDocs, getDoc, doc, setDoc, updateDoc, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
-

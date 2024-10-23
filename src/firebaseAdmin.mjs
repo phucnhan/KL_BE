@@ -10,7 +10,7 @@ const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://fir-c8ee2.firebaseio.com' // Thay thế bằng URL cơ sở dữ liệu của bạn
+  databaseURL: 'https://fir-c8ee2.firebaseio.com'
 });
 
 const db = admin.firestore();

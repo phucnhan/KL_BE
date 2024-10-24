@@ -2,3 +2,4 @@ node_modules
 # .gitignore
 src/serviceAccountKey.json
 .env
+src/python_backend/myenv

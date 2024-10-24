@@ -3,3 +3,4 @@ node_modules
 src/serviceAccountKey.json
 .env
 src/python_backend/myenv
+src/python_backend/__pycache__/

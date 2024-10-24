@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import axios from 'axios';
 import db from './firebaseAdmin.mjs';
-import { getNutritionPlan } from './dataService.mjs';
+import { combineData } from './dataService.mjs';
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -20,10 +21,10 @@ app.post('/api/user-data', async (req, res) => {
     console.log('Received user data:', userData);
     const userRef = db.collection('usersdata').doc(userData.uid);
     await userRef.set(userData);
-    res.status(200).json({ message: 'User data saved successfully' });
+    res.status(200).send('User data saved successfully');
   } catch (error) {
     console.error('Error saving user data:', error);
-    res.status(500).json({ error: 'Error saving user data', details: error.message });
+    res.status(500).send('Error saving user data');
   }
 });
 
@@ -34,20 +35,35 @@ app.get('/api/nutrition-plan/:uid', async (req, res) => {
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
-      res.status(404).json({ error: 'User not found' });
+      res.status(404).send('User not found');
       return;
     }
 
     const userData = userDoc.data();
-    const plan = await getNutritionPlan(userData);
+    const bmrResponse = await axios.post('http://localhost:5001/calculate-bmr', userData);
+    const tdeeResponse = await axios.post('http://localhost:5001/calculate-tdee', { user: userData, bmr: bmrResponse.data.bmr });
+    const nutritionPlanResponse = await axios.post('http://localhost:5001/create-nutrition-plan', { user: userData, tdee: tdeeResponse.data.tdee });
 
     res.json({
       user: userData.name,
-      plan: plan
+      plan: nutritionPlanResponse.data.plan
     });
   } catch (error) {
     console.error('Error fetching nutrition plan:', error);
-    res.status(500).json({ error: 'Error fetching nutrition plan', details: error.message });
+    res.status(500).send('Error fetching nutrition plan');
+  }
+});
+
+app.get('/api/train-models', async (req, res) => {
+  try {
+    const combinedData = await combineData();
+    await axios.post('http://localhost:5001/train-linear-regression-model', combinedData);
+    await axios.post('http://localhost:5001/train-lstm-model', combinedData);
+
+    res.status(200).send('Models trained successfully');
+  } catch (error) {
+    console.error('Error training models:', error);
+    res.status(500).send('Error training models');
   }
 });
 

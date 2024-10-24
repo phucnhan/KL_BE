@@ -54,6 +54,17 @@ app.get('/api/nutrition-plan/:uid', async (req, res) => {
   }
 });
 
+app.post('/api/generate-plan', async (req, res) => {
+  try {
+    const { user, plan_type } = req.body;
+    const planResponse = await axios.post('http://localhost:5001/generate-plan', { user, plan_type });
+    res.json(planResponse.data);
+  } catch (error) {
+    console.error('Error generating plan:', error);
+    res.status(500).send('Error generating plan');
+  }
+});
+
 app.get('/api/train-models', async (req, res) => {
   try {
     const combinedData = await combineData();

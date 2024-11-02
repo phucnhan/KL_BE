@@ -28,8 +28,7 @@ export function readCSV(filePath) {
 
 export async function combineData() {
   const userData = await getUserData();
-  const csvData = await readCSV('src/data/NutrientValues.csv'); // Cập nhật đường dẫn tới file CSV
-
+  const csvData = await readCSV('src/data/NutrientValues.csv');
   let combinedData = userData.map(user => {
     let nutrientData = csvData.find(item => item['Main food description'] === user.food);
     return {

@@ -1,5 +1,6 @@
 import { collection, getDocs } from "./firebase.mjs";
 import fs from 'fs';
+import { db } from "./firebase.mjs";
 import csv from 'csv-parser';
 
 export async function getUserData() {
@@ -17,25 +18,17 @@ export function readCSV(filePath) {
     fs.createReadStream(filePath)
       .pipe(csv())
       .on('data', (data) => results.push(data))
-      .on('end', () => {
-        resolve(results);
-      })
-      .on('error', (error) => {
-        reject(error);
-      });
+      .on('end', () => resolve(results))
+      .on('error', (error) => reject(error));
   });
 }
 
 export async function combineData() {
   const userData = await getUserData();
   const csvData = await readCSV('src/data/NutrientValues.csv');
-  let combinedData = userData.map(user => {
-    let nutrientData = csvData.find(item => item['Main food description'] === user.food);
-    return {
-      ...user,
-      nutrientData
-    };
+  return userData.map(user => {
+    const nutrientData = csvData.find(item => item['Main food description'] === user.food);
+    return { ...user, nutrientData };
   });
-
-  return combinedData;
 }
+

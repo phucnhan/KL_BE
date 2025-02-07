@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
-from ai_models import fetch_user_data, calculate_bmr, calculate_tdee, create_nutrition_plan, generate_plan, train_linear_regression_model, train_lstm_model
+from ai_models import fetch_user_data, calculate_bmr, calculate_tdee, create_nutrition_plan, generate_plan_with_foods
+from firebase_config import db
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -31,22 +33,16 @@ def generate_plan_route():
         data = request.json
         uid = data['uid']
         user = fetch_user_data(uid)
-        plan = generate_plan(user)
+
+        # Load nutrient data from CSV
+        nutrient_data = pd.read_csv('src/data/NutrientValues.csv')
+
+        # Generate the plan with foods
+        plan = generate_plan_with_foods(user, uid, nutrient_data)
+
         return jsonify(plan=plan)
     except Exception as e:
         return jsonify(error=str(e)), 500
-
-@app.route('/train-linear-regression-model', methods=['POST'])
-def train_linear_regression_model_route():
-    user_data = request.json
-    model = train_linear_regression_model(user_data)
-    return jsonify(message="Linear Regression Model trained successfully")
-
-@app.route('/train-lstm-model', methods=['POST'])
-def train_lstm_model_route():
-    user_data = request.json
-    model = train_lstm_model(user_data)
-    return jsonify(message="LSTM Model trained successfully")
 
 @app.route('/test-fetch-user/<uid>', methods=['GET'])
 def test_fetch_user(uid):

@@ -1,9 +1,6 @@
 import numpy as np
-from sklearn.linear_model import LinearRegression
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
-from firebase_config import db  # Import the Firebase configuration
+from firebase_config import db
+import pandas as pd
 
 def fetch_user_data(uid):
     user_ref = db.collection('usersdata').document(uid)
@@ -29,6 +26,57 @@ def calculate_tdee(user, bmr):
     }
     return bmr * activity_factor[user['activityLevel']]
 
+def map_food_to_nutrients(selected_foods, nutrient_data):
+    nutrient_data.columns = [col.strip() for col in nutrient_data.columns]
+    filtered_data = nutrient_data[nutrient_data['Main food description'].isin(selected_foods)]
+    return filtered_data[['Main food description', 'Energy (kcal)', 'Protein (g)', 'Carbohydrate (g)', 'Total Fat (g)']]
+
+def generate_plan_with_foods(user, uid, nutrient_data):
+    days = {
+        'Recommended': 90,
+        'fast': 30,
+        'slow': 180
+    }
+    plan_days = days[user['selectedOption']]
+    bmr = calculate_bmr(user)
+    tdee = calculate_tdee(user, bmr)
+
+    selected_foods = user['selectedFoods']['Carbs'] + user['selectedFoods']['Proteins'] + user['selectedFoods']['Fats']
+    food_nutrients = map_food_to_nutrients(selected_foods, nutrient_data)
+
+    plan_list = []
+    for day in range(plan_days):
+        daily_variation = np.random.uniform(-0.05, 0.05)
+        calories = round(tdee * (1 + daily_variation))
+        protein = round(user['weight'] * 2.2 * (1 + daily_variation))
+        fat = round(calories * 0.25 / 9 * (1 + daily_variation))
+        carbs = round((calories - (protein * 4 + fat * 9)) / 4 * (1 + daily_variation))
+
+        daily_foods = []
+        remaining_calories = calories
+
+        for _, food in food_nutrients.iterrows():
+            if remaining_calories <= 0:
+                break
+            portion = min(remaining_calories, food['Energy (kcal)'])
+            daily_foods.append({
+                'food': food['Main food description'],
+                'portion': round(portion / food['Energy (kcal)'] * 100, 2)
+            })
+            remaining_calories -= portion
+
+        plan_list.append({
+            'day': day + 1,
+            'calories': calories,
+            'protein': protein,
+            'fat': fat,
+            'carbs': carbs,
+            'foods': daily_foods
+        })
+
+    plan_ref = db.collection('usersdata').document(uid).collection('nutritionPlans')
+    for day_plan in plan_list:
+        plan_ref.add(day_plan)
 def create_nutrition_plan(user, tdee):
     if user['goal'] == 'lose weight':
         goal_calories = tdee - 500
@@ -48,53 +96,4 @@ def create_nutrition_plan(user, tdee):
         'carbs': round(carbs)
     }
 
-def generate_plan(user):
-    days = {
-        'Recommended': 90,  # 3 months
-        'fast': 30,         # 1 month
-        'slow': 180         # 6 months
-    }
-    
-    plan_days = days[user['selectedOption']]
-    
-    bmr = calculate_bmr(user)
-    tdee = calculate_tdee(user, bmr)
-    nutrition_plan = create_nutrition_plan(user, tdee)
-    
-    plan_list = []
-    
-    for day in range(plan_days):
-        daily_variation = np.random.uniform(-0.05, 0.05)  # Random variation between -5% and +5%
-        
-        plan_list.append({
-            'day': day + 1,
-            'calories': round(nutrition_plan['calories'] * (1 + daily_variation)),
-            'protein': round(nutrition_plan['protein'] * (1 + daily_variation)),
-            'fat': round(nutrition_plan['fat'] * (1 + daily_variation)),
-            'carbs': round(nutrition_plan['carbs'] * (1 + daily_variation))
-        })
-    
     return plan_list
-
-def train_linear_regression_model(user_data):
-    inputs = np.array([[user['age'], user['height'], user['weight'], user['activityLevel']] for user in user_data])
-    outputs = np.array([user['calories'] for user in user_data])
-
-    regression = LinearRegression().fit(inputs, outputs)
-    return regression
-
-def train_lstm_model(user_data):
-    inputs = np.array([[user['age'], user['height'], user['weight'], user['activityLevel']] for user in user_data])
-    outputs = np.array([user['calories'] for user in user_data])
-
-    input_tensor = tf.convert_to_tensor(inputs, dtype=tf.float32)
-    output_tensor = tf.convert_to_tensor(outputs, dtype=tf.float32)
-
-    model = Sequential()
-    model.add(LSTM(50, return_sequences=True, input_shape=(inputs.shape[1], 1)))
-    model.add(LSTM(50))
-    model.add(Dense(1))
-    model.compile(optimizer='adam', loss='mean_squared_error')
-
-    model.fit(input_tensor, output_tensor, epochs=100)
-    return model

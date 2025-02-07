@@ -39,20 +39,27 @@ app.get('/api/nutrition-plan/:uid', async (req, res) => {
       return;
     }
 
-    const userData = userDoc.data();
-    const bmrResponse = await axios.post('http://localhost:5001/calculate-bmr', userData);
-    const tdeeResponse = await axios.post('http://localhost:5001/calculate-tdee', { user: userData, bmr: bmrResponse.data.bmr });
-    const nutritionPlanResponse = await axios.post('http://localhost:5001/create-nutrition-plan', { user: userData, tdee: tdeeResponse.data.tdee });
+    // Fetch all nutrition plans for the user
+    const plansRef = userRef.collection('nutritionPlans');
+    const plansSnapshot = await plansRef.get();
 
-    res.json({
-      user: userData.name,
-      plan: nutritionPlanResponse.data.plan
+    if (plansSnapshot.empty) {
+      res.status(404).send('No plans found for this user');
+      return;
+    }
+
+    const plans = [];
+    plansSnapshot.forEach(doc => {
+      plans.push(doc.data());
     });
+
+    res.json({ user: userDoc.data().name, plans });
   } catch (error) {
     console.error('Error fetching nutrition plan:', error);
     res.status(500).send('Error fetching nutrition plan');
   }
 });
+
 
 app.post('/api/generate-plan', async (req, res) => {
   try {

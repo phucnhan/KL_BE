@@ -46,13 +46,8 @@ def generate_plan_route():
         print(f"User data: {user}")  # In dữ liệu user ra log
 
         # Load nutrient data từ CSV
-        # Lấy thư mục hiện tại của file app.py
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-        # Tạo đường dẫn tuyệt đối đến file NutrientValues.csv
         CSV_PATH = os.path.join(BASE_DIR, '..', 'data', 'NutrientValues.csv')
-
-        # Đọc dữ liệu từ file CSV
         nutrient_data = pd.read_csv(CSV_PATH)
         print("Loaded nutrient data successfully")  # Xác nhận đã load CSV
 
@@ -60,19 +55,23 @@ def generate_plan_route():
         plan = generate_plan_with_foods(user, uid, nutrient_data)
         print("Generated nutrition plan")  # Xác nhận đã tạo kế hoạch
 
-        # Lưu kế hoạch vào Firestore
+        # Xóa kế hoạch cũ trước khi lưu kế hoạch mới
         user_ref = db.collection('usersdata').document(uid).collection('nutritionPlans')
+        old_plans = user_ref.stream()
+        for plan_doc in old_plans:
+            user_ref.document(plan_doc.id).delete()
+        print("Deleted old nutrition plans")  # Xác nhận đã xóa kế hoạch cũ
+
+        # Lưu kế hoạch mới vào Firestore
         for day_plan in plan:
             user_ref.add(day_plan)
-        
-        print("Saved nutrition plan to Firestore")  # Xác nhận đã lưu vào Firestore
+
+        print("Saved new nutrition plan to Firestore")  # Xác nhận đã lưu kế hoạch mới
 
         return jsonify(success=True, plan=plan)
     except Exception as e:
         print(f"Error in generate-plan: {str(e)}")  # In lỗi ra log
         return jsonify(error=str(e)), 500
-
-
 
 @app.route('/test-fetch-user/<uid>', methods=['GET'])
 def test_fetch_user(uid):

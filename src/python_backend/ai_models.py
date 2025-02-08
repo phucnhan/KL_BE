@@ -55,8 +55,8 @@ def generate_plan_with_foods(user, uid, nutrient_data):
     try:
         days = {
             'Recommended': 90,
-            'fast': 30,
-            'slow': 180
+            'Fast': 30,
+            'Slow': 180
         }
         plan_days = days[user['selectedOption']]
         bmr = calculate_bmr(user)

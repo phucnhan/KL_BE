@@ -15,45 +15,40 @@ app.use((req, res, next) => {
   next();
 });
 
-app.post('/api/user-data', async (req, res) => {
+app.get('/api/user-data/:uid', async (req, res) => {
+  const uid = req.params.uid;
   try {
-    const userData = req.body;
-    console.log('Received user data:', userData);
-    const userRef = db.collection('usersdata').doc(userData.uid);
-    await userRef.set(userData);
-    res.status(200).send('User data saved successfully');
+    const userRef = db.collection('usersdata').doc(uid);
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+      return res.status(404).send('User not found');
+    }
+    res.status(200).json(userDoc.data());
   } catch (error) {
-    console.error('Error saving user data:', error);
-    res.status(500).send('Error saving user data');
+    console.error('Error fetching user data:', error);
+    res.status(500).send('Error fetching user data');
   }
 });
+
 
 app.get('/api/nutrition-plan/:uid', async (req, res) => {
   try {
     const uid = req.params.uid;
     const userRef = db.collection('usersdata').doc(uid);
-    const userDoc = await userRef.get();
-
-    if (!userDoc.exists) {
-      res.status(404).send('User not found');
-      return;
-    }
-
-    // Fetch all nutrition plans for the user
     const plansRef = userRef.collection('nutritionPlans');
     const plansSnapshot = await plansRef.get();
 
     if (plansSnapshot.empty) {
-      res.status(404).send('No plans found for this user');
+      res.status(404).send('No nutrition plans found for this user');
       return;
     }
 
     const plans = [];
-    plansSnapshot.forEach(doc => {
+    plansSnapshot.forEach((doc) => {
       plans.push(doc.data());
     });
 
-    res.json({ user: userDoc.data().name, plans });
+    res.status(200).json({ plans });
   } catch (error) {
     console.error('Error fetching nutrition plan:', error);
     res.status(500).send('Error fetching nutrition plan');
@@ -63,20 +58,35 @@ app.get('/api/nutrition-plan/:uid', async (req, res) => {
 
 app.post('/api/generate-plan', async (req, res) => {
   try {
-    const { user, plan_type } = req.body;
-    const planResponse = await axios.post('http://10.210.243.255:10000/generate-plan', { user, plan_type });
+    const { user } = req.body;
+    const { uid, selectedOption } = user;
+
+    if (!uid || !selectedOption) {
+      throw new Error('Missing required fields: uid or selectedOption');
+    }
+
+    console.log('Generating plan for user:', uid, 'with option:', selectedOption);
+
+    // Logic xử lý plan ở đây (ví dụ gọi Flask API)
+    const planResponse = await axios.post('http://127.0.0.1:5000/generate-plan', {
+      uid,
+      selectedOption,
+    });
+
     res.json(planResponse.data);
   } catch (error) {
-    console.error('Error generating plan:', error);
+    console.error('Error generating plan:', error.message);
     res.status(500).send('Error generating plan');
   }
 });
 
+
+
 app.get('/api/train-models', async (req, res) => {
   try {
     const combinedData = await combineData();
-    await axios.post('http://10.210.243.255:10000/train-linear-regression-model', combinedData);
-    await axios.post('http://10.210.243.255:10000/train-lstm-model', combinedData);
+    await axios.post('http://localhost:5001/train-linear-regression-model', combinedData);
+    await axios.post('http://localhost:5001/train-lstm-model', combinedData);
 
     res.status(200).send('Models trained successfully');
   } catch (error) {

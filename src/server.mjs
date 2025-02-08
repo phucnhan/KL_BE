@@ -64,7 +64,7 @@ app.get('/api/nutrition-plan/:uid', async (req, res) => {
 app.post('/api/generate-plan', async (req, res) => {
   try {
     const { user, plan_type } = req.body;
-    const planResponse = await axios.post('http://localhost:5001/generate-plan', { user, plan_type });
+    const planResponse = await axios.post('https://kl-be-python.onrender.com/generate-plan', { user, plan_type });
     res.json(planResponse.data);
   } catch (error) {
     console.error('Error generating plan:', error);
@@ -75,8 +75,8 @@ app.post('/api/generate-plan', async (req, res) => {
 app.get('/api/train-models', async (req, res) => {
   try {
     const combinedData = await combineData();
-    await axios.post('http://localhost:5001/train-linear-regression-model', combinedData);
-    await axios.post('http://localhost:5001/train-lstm-model', combinedData);
+    await axios.post('https://kl-be-python.onrender.com/train-linear-regression-model', combinedData);
+    await axios.post('https://kl-be-python.onrender.com/train-lstm-model', combinedData);
 
     res.status(200).send('Models trained successfully');
   } catch (error) {
